@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
+from io import BytesIO
 
 # Título de la aplicación
 st.title('Lector de Archivos Excel desde GitHub')
@@ -23,23 +24,29 @@ if selected_file_name:
     try:
         # Usamos requests para obtener el contenido del archivo
         response = requests.get(url)
-        response.raise_for_status() # Lanza un error si la solicitud no fue exitosa
+        response.raise_for_status()  # Lanza un error si la solicitud no fue exitosa
+
+        # Usar BytesIO para evitar la advertencia de `FutureWarning`
+        excel_data = BytesIO(response.content)
 
         # Leemos el contenido como un archivo en memoria
-        df = pd.read_excel(response.content, engine='openpyxl')
-        
-        # --- Solución al error: Limpiar valores NaN en columnas de texto ---
-        # 1. Identificar columnas de tipo 'object' (normalmente texto)
-        string_cols = df.select_dtypes(include='object').columns
-        
-        # 2. Rellenar los valores NaN en esas columnas con un string vacío
-        # Esto evita que Streamlit se confunda con los valores NaN
-        df[string_cols] = df[string_cols].fillna('')
-        
-        # Otra opción es convertir las columnas numéricas a float para evitar
-        # problemas de tipo de dato mixto, aunque el fillna anterior es la solución más probable.
-        # df = df.astype({col: 'float64' for col in df.columns if pd.api.types.is_numeric_dtype(df[col])})
+        df = pd.read_excel(excel_data, engine='openpyxl')
 
+        # --- Solución a los errores de tipo de dato de PyArrow ---
+        # 1. Rellenar los valores NaN en columnas de texto
+        string_cols = df.select_dtypes(include='object').columns
+        df[string_cols] = df[string_cols].fillna('')
+
+        # 2. Convertir todas las columnas de texto a tipo string
+        # Esto asegura que no haya tipos de datos mixtos (int y string) en la misma columna.
+        df[string_cols] = df[string_cols].astype(str)
+
+        # 3. Solución para el problema de 'Expected bytes' en columnas 'Unnamed'
+        # Convertir a string cualquier columna con el nombre 'Unnamed:'
+        for col in df.columns:
+            if 'Unnamed:' in str(col):
+                df[col] = df[col].astype(str)
+        
         st.subheader(f'Datos del archivo: {selected_file_name}')
         
         # Muestra la tabla en la aplicación de Streamlit
