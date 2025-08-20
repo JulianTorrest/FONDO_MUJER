@@ -28,6 +28,18 @@ if selected_file_name:
         # Leemos el contenido como un archivo en memoria
         df = pd.read_excel(response.content, engine='openpyxl')
         
+        # --- Solución al error: Limpiar valores NaN en columnas de texto ---
+        # 1. Identificar columnas de tipo 'object' (normalmente texto)
+        string_cols = df.select_dtypes(include='object').columns
+        
+        # 2. Rellenar los valores NaN en esas columnas con un string vacío
+        # Esto evita que Streamlit se confunda con los valores NaN
+        df[string_cols] = df[string_cols].fillna('')
+        
+        # Otra opción es convertir las columnas numéricas a float para evitar
+        # problemas de tipo de dato mixto, aunque el fillna anterior es la solución más probable.
+        # df = df.astype({col: 'float64' for col in df.columns if pd.api.types.is_numeric_dtype(df[col])})
+
         st.subheader(f'Datos del archivo: {selected_file_name}')
         
         # Muestra la tabla en la aplicación de Streamlit
