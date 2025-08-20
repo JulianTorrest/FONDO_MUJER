@@ -26,26 +26,19 @@ if selected_file_name:
         response = requests.get(url)
         response.raise_for_status()  # Lanza un error si la solicitud no fue exitosa
 
-        # Usar BytesIO para evitar la advertencia de `FutureWarning`
+        # Usamos BytesIO para leer el contenido del archivo
         excel_data = BytesIO(response.content)
 
-        # Leemos el contenido como un archivo en memoria
-        df = pd.read_excel(excel_data, engine='openpyxl')
+        # Usar el parámetro `dtype` de pandas para forzar la lectura de ciertas columnas como texto
+        # Esto es más robusto que convertir el tipo de dato después de la lectura.
+        df = pd.read_excel(excel_data, dtype={'Unnamed: 2': str, 'Unnamed: 4': str}, engine='openpyxl')
 
-        # --- Solución a los errores de tipo de dato de PyArrow ---
-        # 1. Rellenar los valores NaN en columnas de texto
-        string_cols = df.select_dtypes(include='object').columns
-        df[string_cols] = df[string_cols].fillna('')
+        # Si hay más columnas 'Unnamed' con problemas, las convertimos a string.
+        # Esto maneja el caso de forma general sin tener que listarlas todas.
+        df = df.astype({col: str for col in df.columns if 'Unnamed:' in str(col)})
 
-        # 2. Convertir todas las columnas de texto a tipo string
-        # Esto asegura que no haya tipos de datos mixtos (int y string) en la misma columna.
-        df[string_cols] = df[string_cols].astype(str)
-
-        # 3. Solución para el problema de 'Expected bytes' en columnas 'Unnamed'
-        # Convertir a string cualquier columna con el nombre 'Unnamed:'
-        for col in df.columns:
-            if 'Unnamed:' in str(col):
-                df[col] = df[col].astype(str)
+        # Rellenar los valores NaN con una cadena vacía para evitar errores de renderizado.
+        df = df.fillna('')
         
         st.subheader(f'Datos del archivo: {selected_file_name}')
         
