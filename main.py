@@ -30,7 +30,8 @@ if selected_file_name:
         csv_data = StringIO(response.text)
 
         # Usamos pd.read_csv para leer el archivo CSV
-        df = pd.read_csv(csv_data)
+        # El parámetro 'on_bad_lines="skip"' omite las filas con errores de formato
+        df = pd.read_csv(csv_data, on_bad_lines='skip')
 
         # Rellenar los valores NaN con una cadena vacía para evitar errores de renderizado.
         df = df.fillna('')
