@@ -30,8 +30,12 @@ if selected_file_name:
         csv_data = StringIO(response.text)
 
         # Usamos pd.read_csv para leer el archivo CSV
-        # El parámetro 'on_bad_lines="skip"' omite las filas con errores de formato
-        df = pd.read_csv(csv_data, on_bad_lines='skip')
+        # El parámetro 'sep=";"' usa punto y coma como delimitador.
+        # 'on_bad_lines="skip"' omite las filas con errores de formato.
+        if selected_file_name == 'Ingresos per cápita predial':
+            df = pd.read_csv(csv_data, sep=';', on_bad_lines='skip', skiprows=1)
+        else:
+            df = pd.read_csv(csv_data, sep=';', on_bad_lines='skip')
 
         # Rellenar los valores NaN con una cadena vacía para evitar errores de renderizado.
         df = df.fillna('')
