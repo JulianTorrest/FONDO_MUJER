@@ -29,14 +29,20 @@ if selected_file_name:
         # Usamos StringIO para leer el contenido del archivo de texto
         csv_data = StringIO(response.text)
 
-        # Usamos pd.read_csv para leer el archivo CSV
-        # El parámetro 'sep=";"' usa punto y coma como delimitador.
-        # 'on_bad_lines="skip"' omite las filas con errores de formato.
-        if selected_file_name == 'Ingresos per cápita predial':
-            df = pd.read_csv(csv_data, sep=';', on_bad_lines='skip', skiprows=1)
+        # Usamos pd.read_csv con diferentes delimitadores según el archivo seleccionado
+        if selected_file_name in ['DIVIPOLA_Municipios', 'Ingresos per cápita predial']:
+            # Estos archivos usan punto y coma como delimitador
+            sep = ';'
+            if selected_file_name == 'Ingresos per cápita predial':
+                # Omite la primera fila para este archivo
+                df = pd.read_csv(csv_data, sep=sep, on_bad_lines='skip', skiprows=1)
+            else:
+                df = pd.read_csv(csv_data, sep=sep, on_bad_lines='skip')
         else:
-            df = pd.read_csv(csv_data, sep=';', on_bad_lines='skip')
-
+            # Los otros archivos usan coma como delimitador
+            sep = ','
+            df = pd.read_csv(csv_data, sep=sep, on_bad_lines='skip')
+            
         # Rellenar los valores NaN con una cadena vacía para evitar errores de renderizado.
         df = df.fillna('')
 
